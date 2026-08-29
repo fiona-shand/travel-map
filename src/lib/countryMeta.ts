@@ -47,5 +47,3 @@ export function metaFor(countryId: string): CountryMeta {
   return meta
 }
 
-/** Sovereign countries on the map (the USA counts once, not 56 times). */
-export const WORLD_COUNTRY_COUNT = 241

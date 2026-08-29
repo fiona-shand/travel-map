@@ -60,6 +60,41 @@ describe('WorldAtlas.locate', () => {
   })
 })
 
+describe('Svalbard split out of Norway', () => {
+  it('resolves Longyearbyen to Svalbard, not Norway', () => {
+    const hit = atlas.locate(15.6469, 78.2232)
+    expect(hit?.regionName).toBe('Svalbard')
+    expect(hit?.countryId).toBe('744') // ISO 3166-1 for Svalbard and Jan Mayen
+    expect(hit?.method).toBe('contains')
+  })
+
+  it('keeps mainland Norway intact', () => {
+    const oslo = atlas.locate(10.7461, 59.9127)
+    expect(oslo?.regionName).toBe('Norway')
+    expect(oslo?.countryId).toBe('578')
+
+    // North Cape, the northern tip of the mainland, must stay Norwegian.
+    const nordkapp = atlas.locate(25.7833, 71.1667)
+    expect(nordkapp?.countryId).toBe('578')
+  })
+
+  it('counts Svalbard as its own country', () => {
+    const svalbard = atlas.regions.filter((r) => r.countryId === '744')
+    expect(svalbard).toHaveLength(1)
+    expect(atlas.nameOf('744')).toBe('Svalbard')
+  })
+
+  it('splits without losing or duplicating any of Norway’s polygons', () => {
+    const count = (id: string) => {
+      const g = atlas.byId(id)!.feature.geometry as { coordinates: unknown[] }
+      return g.coordinates.length
+    }
+    // Norway arrives from the dataset as 32 polygons; 9 are Svalbard.
+    expect(count('578') + count('744')).toBe(32)
+    expect(count('744')).toBe(9)
+  })
+})
+
 describe('United States regions', () => {
   // The higher-resolution state outlines resolve coastal cities directly,
   // where the 50m country outline needed the nearest fallback.

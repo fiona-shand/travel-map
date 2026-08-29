@@ -3,7 +3,6 @@ import { Globe } from '../components/Globe'
 import { RegionConfirm } from '../components/RegionConfirm'
 import { UnplacedTray } from '../components/UnplacedTray'
 import { Button } from '../components/ui/primitives'
-import { WORLD_COUNTRY_COUNT } from '../lib/countryMeta'
 import { RAMP_THRESHOLDS, VISIT_RAMP } from '../lib/fillScale'
 import { assignPhotoToRegion } from '../lib/placePhoto'
 import type { TravelData } from '../lib/useTravelData'
@@ -58,7 +57,7 @@ export function AtlasView({ data }: { data: TravelData }) {
           count: data.photoCounts.get(selectedRegion) ?? 0,
         }
       : null
-  const pct = ((data.visitedCount / WORLD_COUNTRY_COUNT) * 100).toFixed(0)
+  const pct = atlas ? ((data.visitedCount / atlas.countryCount) * 100).toFixed(0) : '0'
   const isEmpty = !data.loading && data.visitedCount === 0 && data.photoCount === 0
 
   return (

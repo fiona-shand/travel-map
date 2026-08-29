@@ -64,6 +64,65 @@ export function canonicalId(raw: unknown, name: string): string {
 
 type VertexIndex = { region: Region; vertices: Position[] }[]
 
+/**
+ * Territories the dataset folds into a parent country that we split back out
+ * into countries of their own.
+ *
+ * Natural Earth draws these by sovereignty, so they arrive as extra polygons
+ * inside the parent's MultiPolygon even though they hold their own ISO 3166-1
+ * code. Splitting is by latitude band, which only works where there is a clear
+ * gap - so each entry records the gap it relies on.
+ */
+const SPLIT_OUT: {
+  parentId: string
+  id: string
+  name: string
+  /** True for polygons belonging to the territory, given that polygon's bounds. */
+  belongs: (bounds: [[number, number], [number, number]]) => boolean
+}[] = [
+  {
+    parentId: '578', // Norway
+    id: '744', // ISO 3166-1 for Svalbard and Jan Mayen
+    name: 'Svalbard',
+    // Mainland Norway tops out at 71.18N (North Cape); Svalbard's southernmost,
+    // Bear Island, sits at 74.35N. Any cut inside that 3-degree gap is safe.
+    // Jan Mayen (71N, 9W) stays with Norway - it is not part of the archipelago.
+    belongs: (bounds) => bounds[0][1] > 73,
+  },
+]
+
+/** Partition a MultiPolygon's polygons by a predicate on each one's bounds. */
+function splitFeature(
+  source: NamedFeature,
+  belongs: (bounds: [[number, number], [number, number]]) => boolean,
+): { matched: NamedFeature | null; rest: NamedFeature } {
+  const geometry = source.geometry as { type: string; coordinates: Position[][][] }
+  if (geometry.type !== 'MultiPolygon') return { matched: null, rest: source }
+
+  const matched: Position[][][] = []
+  const rest: Position[][][] = []
+  for (const polygon of geometry.coordinates) {
+    const bounds = geoBounds({ type: 'Polygon', coordinates: polygon }) as [
+      [number, number],
+      [number, number],
+    ]
+    ;(belongs(bounds) ? matched : rest).push(polygon)
+  }
+
+  if (matched.length === 0) return { matched: null, rest: source }
+
+  const asFeature = (coordinates: Position[][][], name: string): NamedFeature => ({
+    type: 'Feature',
+    properties: { name },
+    geometry: { type: 'MultiPolygon', coordinates },
+  })
+
+  return {
+    matched: asFeature(matched, source.properties.name),
+    rest: asFeature(rest, source.properties.name),
+  }
+}
+
 export class WorldAtlas {
   /** Every shadeable shape: countries, with the USA expanded into states. */
   readonly regions: Region[]
@@ -86,6 +145,29 @@ export class WorldAtlas {
     for (const f of countries.features) {
       const id = canonicalId((f as { id?: unknown }).id, f.properties.name)
       if (id === USA) continue // replaced by its states, below
+
+      const split = SPLIT_OUT.find((s) => s.parentId === id)
+      if (split) {
+        const { matched, rest } = splitFeature(f, split.belongs)
+        if (matched) {
+          regions.push({
+            id: split.id,
+            name: split.name,
+            countryId: split.id,
+            countryName: split.name,
+            feature: { ...matched, properties: { name: split.name } },
+          })
+          regions.push({
+            id,
+            name: f.properties.name,
+            countryId: id,
+            countryName: f.properties.name,
+            feature: rest,
+          })
+          continue
+        }
+      }
+
       regions.push({
         id,
         name: f.properties.name,
@@ -113,6 +195,15 @@ export class WorldAtlas {
       if (bucket) bucket.push(region)
       else this.byIdIndex.set(region.id, [region])
     }
+  }
+
+  /**
+   * Distinct sovereign countries on the globe, for the "% of the world" stat.
+   * Derived rather than hardcoded, so splitting a territory out or folding one
+   * in keeps the denominator honest.
+   */
+  get countryCount(): number {
+    return new Set(this.regions.map((r) => r.countryId)).size
   }
 
   /** All shapes sharing an id (Australia + Ashmore both answer to '036'). */

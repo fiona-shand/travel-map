@@ -52,6 +52,14 @@ the cities you visited, searched from that country's own list. Any photo within
 25km of one is filed under it — including photos already imported, since adding
 a city sweeps the country's existing photos so a new city never sits at zero.
 
+**Some territories are split back out.** Natural Earth draws by sovereignty, so
+Svalbard arrives as nine polygons inside Norway's geometry despite holding its
+own ISO code (SJ). `SPLIT_OUT` in `geo.ts` separates it into a country of its
+own — mainland Norway tops out at 71.18°N and Bear Island, Svalbard's
+southernmost, sits at 74.35°N, so a cut at 73°N is unambiguous. Jan Mayen stays
+with Norway; it isn't part of the archipelago. The "% of the world" denominator
+is derived from the atlas rather than hardcoded, so it stays honest.
+
 **Anything unplaceable is kept, not dropped.** Screenshots and social-media
 downloads routinely have GPS stripped, so those land in an unplaced tray where you
 assign them by clicking the globe.
