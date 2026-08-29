@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { cityForPhoto } from './cityActions'
 import { db, markVisited, newId } from './db'
 import { looksHeic, toDisplayBlob } from './exif'
 import type { ImportMessage, ImportRequest } from './importer.worker'
@@ -85,6 +86,7 @@ export function useImporter() {
 
         await db.photos.add({
           id: newId(),
+          cityId: await cityForPhoto({ regionId, lat: p.lat, lon: p.lon }),
           blob: p.blob,
           thumbBlob: p.thumbBlob,
           fileName: p.fileName,

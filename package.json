@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cities": "node scripts/build-cities.mjs",
+    "predev": "node scripts/build-cities.mjs",
+    "prebuild": "node scripts/build-cities.mjs"
   },
   "dependencies": {
     "countries-list": "^3.4.1",
@@ -35,6 +38,7 @@
     "@types/react-dom": "^19.2.4",
     "@types/topojson-client": "^3.1.5",
     "@vitejs/plugin-react": "^6.1.0",
+    "all-the-cities": "^3.1.0",
     "oxlint": "^1.79.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",

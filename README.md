@@ -35,6 +35,11 @@ Measured: NYC 3.2km, Miami 3.4km, Amalfi 1.3km — while a mid-Atlantic point st
 correctly unresolved at 1312km. `src/lib/__tests__/geo.test.ts` guards this; it's
 the one place a silent regression would quietly lose photos.
 
+**Cities are yours to add, then fill themselves.** A country page lets you add
+the cities you visited, searched from that country's own list. Any photo within
+25km of one is filed under it — including photos already imported, since adding
+a city sweeps the country's existing photos so a new city never sits at zero.
+
 **Anything unplaceable is kept, not dropped.** Screenshots and social-media
 downloads routinely have GPS stripped, so those land in an unplaced tray where you
 assign them by clicking the globe.
@@ -58,8 +63,14 @@ the UI — indistinguishable from the import having done nothing.
 | --- | --- |
 | `world-atlas` `countries-50m` | The 110m set omits Singapore, Hong Kong, Malta, the Maldives, Monaco, Barbados and Mauritius |
 | `us-atlas` `states-10m` | Geographic (not Albers-projected) US state outlines |
+| `all-the-cities` | 112k places with population ≥ 1000, for the city typeahead |
 
-Both are served from `public/` so they stay out of the JS bundle.
+The first two are served from `public/`, so they stay out of the JS bundle.
+
+City data is **generated, not committed**: `npm run cities` (run automatically
+before `dev` and `build`) writes one file per country into `public/cities/`.
+One file per country because a country page only ever needs its own — the whole
+set is ~4MB, but France is 316KB and Greece 34KB, fetched only when opened.
 
 ## Stack
 

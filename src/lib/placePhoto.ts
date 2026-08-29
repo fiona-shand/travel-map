@@ -1,3 +1,4 @@
+import { cityForPhoto } from './cityActions'
 import { db, markVisited } from './db'
 import type { WorldAtlas } from './geo'
 
@@ -20,6 +21,7 @@ export async function assignPhotoToRegion(
     regionId,
     regionName: region.name,
     countryId: region.countryId,
+    cityId: await cityForPhoto({ regionId, lat: photo.lat, lon: photo.lon }),
     placedBy: 'manual',
   })
   await markVisited(regionId, region.countryId, photo.takenAt)

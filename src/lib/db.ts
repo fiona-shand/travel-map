@@ -17,6 +17,8 @@ export type Photo = {
   regionName: string | null
   /** Parent country, so US states still roll up to one country. */
   countryId: string | null
+  /** Set when the photo falls within CITY_RADIUS_KM of a city you've added. */
+  cityId: string | null
   /** How the region was determined - 'manual' means the user assigned it. */
   placedBy: 'contains' | 'nearest' | 'manual' | null
   caption: string
@@ -30,6 +32,17 @@ export type Place = {
   firstVisit: number | null
   notes: string
   updatedAt: number
+}
+
+/** A city you've added under a country or state. */
+export type City = {
+  id: string
+  regionId: string
+  countryId: string
+  name: string
+  lat: number
+  lon: number
+  createdAt: number
 }
 
 export type Trip = {
@@ -57,12 +70,22 @@ if (typeof indexedDB !== 'undefined') {
 const db = new Dexie('travelpin') as Dexie & {
   photos: EntityTable<Photo, 'id'>
   places: EntityTable<Place, 'regionId'>
+  cities: EntityTable<City, 'id'>
   trips: EntityTable<Trip, 'id'>
 }
 
 db.version(1).stores({
   photos: 'id, regionId, countryId, takenAt, createdAt',
   places: 'regionId, countryId, status',
+  trips: 'id, createdAt',
+})
+
+// v2 adds cities. Only new tables and indexes here - no primary key changes,
+// which IndexedDB cannot do in place.
+db.version(2).stores({
+  photos: 'id, regionId, countryId, cityId, takenAt, createdAt',
+  places: 'regionId, countryId, status',
+  cities: 'id, regionId, countryId',
   trips: 'id, createdAt',
 })
 
@@ -132,7 +155,12 @@ export async function clearPlace(regionId: string): Promise<void> {
  * you're actually looking at.
  */
 export async function clearAllData(): Promise<void> {
-  await db.transaction('rw', db.photos, db.places, db.trips, async () => {
-    await Promise.all([db.photos.clear(), db.places.clear(), db.trips.clear()])
+  await db.transaction('rw', db.photos, db.places, db.cities, db.trips, async () => {
+    await Promise.all([
+      db.photos.clear(),
+      db.places.clear(),
+      db.cities.clear(),
+      db.trips.clear(),
+    ])
   })
 }

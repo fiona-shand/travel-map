@@ -101,6 +101,18 @@ export function useAllPhotos() {
   )
 }
 
+/** Cities added under one region. */
+export function useRegionCities(regionId: string | null) {
+  return useLiveQuery(
+    async () => {
+      if (!regionId) return []
+      return db.cities.where('regionId').equals(regionId).toArray()
+    },
+    [regionId],
+    [],
+  )
+}
+
 export function useTrips() {
   return useLiveQuery(async () => db.trips.orderBy('createdAt').reverse().toArray(), [], [])
 }

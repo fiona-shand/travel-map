@@ -1,22 +1,32 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { metaFor } from '../lib/countryMeta'
 import { clearPlace, db, markVisited, toggleWishlist, type Place } from '../lib/db'
 import type { Region } from '../lib/geo'
 import { useImporter } from '../lib/useImporter'
-import { useRegionPhotos } from '../lib/useTravelData'
+import { useRegionCities, useRegionPhotos } from '../lib/useTravelData'
 import { useAtlasStore } from '../store/useAtlas'
+import { CitySection } from './CitySection'
 import { PhotoGrid } from './PhotoGrid'
 import { Button, EmptyState, Property } from './ui/primitives'
 
 /** A country or state opened as its own page, Notion-style. */
 export function RegionPage({ region, place }: { region: Region; place: Place | undefined }) {
   const photos = useRegionPhotos(region.id)
+  const cities = useRegionCities(region.id)
   const [notes, setNotes] = useState(place?.notes ?? '')
+  const [cityFilter, setCityFilter] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const { importFiles } = useImporter()
   const importState = useAtlasStore((s) => s.importState)
 
   useEffect(() => setNotes(place?.notes ?? ''), [place?.notes, region.id])
+  useEffect(() => setCityFilter(null), [region.id])
+
+  const shown = useMemo(
+    () => (cityFilter ? photos.filter((p) => p.cityId === cityFilter) : photos),
+    [photos, cityFilter],
+  )
+  const filterName = cities.find((c) => c.id === cityFilter)?.name ?? null
 
   const meta = metaFor(region.countryId)
   const visited = place?.status === 'visited'
@@ -94,8 +104,18 @@ export function RegionPage({ region, place }: { region: Region; place: Place | u
           )}
         </div>
 
+        <CitySection
+          region={region}
+          cities={cities}
+          photos={photos}
+          selectedCityId={cityFilter}
+          onSelectCity={setCityFilter}
+        />
+
         <div className="mb-3 flex items-center justify-between border-b border-border pb-1.5">
-          <h2 className="text-[15px] font-semibold text-text">Memories</h2>
+          <h2 className="text-[15px] font-semibold text-text">
+            {filterName ? `Memories in ${filterName}` : 'Memories'}
+          </h2>
           <Button
             size="sm"
             variant="primary"
@@ -127,8 +147,14 @@ export function RegionPage({ region, place }: { region: Region; place: Place | u
           />
         </div>
 
-        {photos.length > 0 ? (
-          <PhotoGrid photos={photos} columns="grid-cols-3 sm:grid-cols-4" />
+        {shown.length > 0 ? (
+          <PhotoGrid photos={shown} columns="grid-cols-3 sm:grid-cols-4" />
+        ) : filterName ? (
+          <EmptyState
+            icon="🏙️"
+            title={`Nothing from ${filterName} yet`}
+            body="Photos taken within about 25km of it will appear here automatically."
+          />
         ) : (
           <EmptyState
             icon="📷"
