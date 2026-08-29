@@ -123,3 +123,16 @@ export async function toggleWishlist(regionId: string, countryId: string): Promi
 export async function clearPlace(regionId: string): Promise<void> {
   await db.places.delete(regionId)
 }
+
+/**
+ * Wipe everything in this browser.
+ *
+ * IndexedDB is per-browser-profile, so data seeded or imported in one browser
+ * is invisible to another - this is the only way to clear it from the one
+ * you're actually looking at.
+ */
+export async function clearAllData(): Promise<void> {
+  await db.transaction('rw', db.photos, db.places, db.trips, async () => {
+    await Promise.all([db.photos.clear(), db.places.clear(), db.trips.clear()])
+  })
+}

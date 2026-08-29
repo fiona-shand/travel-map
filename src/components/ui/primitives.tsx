@@ -5,7 +5,7 @@ export function cx(...parts: (string | false | null | undefined)[]): string {
 }
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: 'primary' | 'default' | 'ghost'
+  variant?: 'primary' | 'default' | 'ghost' | 'danger'
   size?: 'sm' | 'md'
 }
 
@@ -22,6 +22,10 @@ export function Button({ variant = 'default', size = 'md', className, ...rest }:
         variant === 'default' &&
           'border border-border bg-white text-text shadow-card hover:bg-bg-hover',
         variant === 'ghost' && 'text-text-2 hover:bg-bg-hover hover:text-text',
+        // Destructive actions need their own variant - passing colour classes
+        // alongside another variant loses to it, since Tailwind resolves by
+        // stylesheet order, not the order given in the class attribute.
+        variant === 'danger' && 'bg-red text-white hover:opacity-90',
         className,
       )}
     />

@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { metaFor } from '../lib/countryMeta'
 import { USA } from '../lib/geo'
 import type { TravelData } from '../lib/useTravelData'
 import { useAtlasStore, type ViewMode } from '../store/useAtlas'
 import { ImportControls } from './ImportDropzone'
+import { ResetDialog } from './ResetDialog'
 import { SectionLabel, cx } from './ui/primitives'
 
 const NAV: { id: ViewMode; icon: string; label: string }[] = [
@@ -46,6 +48,7 @@ function Row({
 
 export function Sidebar({ data }: { data: TravelData }) {
   const { view, setView, selectedRegion, openRegionId, openRegion, atlas } = useAtlasStore()
+  const [resetting, setResetting] = useState(false)
 
   const entries = [...data.places.entries()].map(([regionId, place]) => ({
     regionId,
@@ -162,7 +165,15 @@ export function Sidebar({ data }: { data: TravelData }) {
 
       <div className="border-t border-border p-2">
         <ImportControls />
+        <button
+          onClick={() => setResetting(true)}
+          className="mt-1.5 w-full rounded-sm px-2 py-1 text-left text-[12px] text-text-3 transition-colors hover:bg-bg-hover hover:text-text"
+        >
+          Start fresh…
+        </button>
       </div>
+
+      {resetting && <ResetDialog data={data} onClose={() => setResetting(false)} />}
     </aside>
   )
 }
