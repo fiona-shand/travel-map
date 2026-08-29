@@ -148,9 +148,11 @@ export function AtlasView({ data }: { data: TravelData }) {
         <RegionConfirm
           region={pendingRegion}
           place={data.places.get(pendingRegion.id)}
+          // Adding a country never navigates either - it shades in and stays
+          // put, and its page is opened from the sidebar when wanted.
           onConfirmed={(regionId) => {
             setPending(null)
-            openRegion(regionId)
+            selectRegion(regionId)
           }}
           onClose={() => setPending(null)}
         />

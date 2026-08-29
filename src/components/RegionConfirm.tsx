@@ -7,14 +7,14 @@ import { Button } from './ui/primitives'
 type Props = {
   region: Region
   place: Place | undefined
-  /** Called after "I've been here", to open the region's page. */
+  /** Called after "I've been here". Selects it on the globe; never navigates. */
   onConfirmed: (regionId: string) => void
   onClose: () => void
 }
 
 /**
  * Shown when you click somewhere new on the globe. Confirms what to do with it
- * before anything is written, then hands you straight to its page to add photos.
+ * before anything is written, then leaves you on the globe.
  */
 export function RegionConfirm({ region, place, onConfirmed, onClose }: Props) {
   useEffect(() => {
@@ -55,7 +55,8 @@ export function RegionConfirm({ region, place, onConfirmed, onClose }: Props) {
         </p>
 
         <p className="mt-4 text-[13px] leading-relaxed text-text-2">
-          Have you been here? We&rsquo;ll shade it in and open its page so you can add photos.
+          Have you been here? We&rsquo;ll shade it in on your globe. Its page is in the
+          sidebar whenever you want to add photos.
         </p>
 
         <div className="mt-5 flex flex-col gap-2">
