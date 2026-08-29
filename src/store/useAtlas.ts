@@ -12,6 +12,15 @@ export type ImportState = {
   unplaced: number
 }
 
+/** What an import actually did, so it can never fail silently. */
+export type ImportSummary = {
+  added: number
+  unplaced: number
+  failed: number
+  quotaHit: boolean
+  firstError: string | null
+}
+
 type AtlasStore = {
   atlas: WorldAtlas | null
   atlasError: string | null
@@ -23,6 +32,7 @@ type AtlasStore = {
   /** When set, the next globe click places this photo instead of selecting. */
   assigningPhotoId: string | null
   importState: ImportState
+  importSummary: ImportSummary | null
   init: () => Promise<void>
   setView: (view: ViewMode) => void
   selectRegion: (regionId: string | null) => void
@@ -30,6 +40,7 @@ type AtlasStore = {
   closeRegion: () => void
   setAssigning: (photoId: string | null) => void
   setImportState: (patch: Partial<ImportState>) => void
+  setImportSummary: (summary: ImportSummary | null) => void
 }
 
 const idleImport: ImportState = { active: false, done: 0, total: 0, fileName: '', unplaced: 0 }
@@ -42,6 +53,7 @@ export const useAtlasStore = create<AtlasStore>((set, get) => ({
   openRegionId: null,
   assigningPhotoId: null,
   importState: idleImport,
+  importSummary: null,
 
   init: async () => {
     if (get().atlas) return
@@ -59,4 +71,5 @@ export const useAtlasStore = create<AtlasStore>((set, get) => ({
   closeRegion: () => set({ openRegionId: null }),
   setAssigning: (assigningPhotoId) => set({ assigningPhotoId, openRegionId: null }),
   setImportState: (patch) => set((s) => ({ importState: { ...s.importState, ...patch } })),
+  setImportSummary: (importSummary) => set({ importSummary }),
 }))

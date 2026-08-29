@@ -14,10 +14,18 @@ function isImage(file: File): boolean {
 /** Where to file photos that carry no usable GPS. */
 export type ImportFallback = { regionId: string; regionName: string; countryId: string }
 
+function isQuotaError(err: unknown): boolean {
+  return (
+    err instanceof DOMException &&
+    (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED')
+  )
+}
+
 export function useImporter() {
   const workerRef = useRef<Worker | null>(null)
   const cancelled = useRef(false)
   const setImportState = useAtlasStore((s) => s.setImportState)
+  const setSummary = useAtlasStore((s) => s.setImportSummary)
 
   useEffect(() => {
     return () => {
@@ -52,68 +60,99 @@ export function useImporter() {
           worker.postMessage(request)
         })
 
+      setSummary(null)
       setImportState({ active: true, done: 0, total: files.length, fileName: '', unplaced: 0 })
+
+      let added = 0
       let unplaced = 0
+      let failed = 0
+      let quotaHit = false
+      let firstError: string | null = null
 
-      // One file at a time, so a large import never holds every converted
-      // JPEG in memory at once.
-      for (let i = 0; i < files.length; i++) {
-        if (cancelled.current) break
-        const file = files[i]
-        setImportState({ done: i, total: files.length, fileName: file.name })
-
-        // HEIC has to be converted here on the main thread - see the worker.
-        const display = await toDisplayBlob(file)
-        if (display.error) {
-          console.warn(`[travel-pin] could not convert ${file.name}: ${display.error}`)
-        }
-
-        const msg = await runInWorker({ file, displayBlob: display.blob })
-
-        if (msg.type === 'error') {
-          console.warn(`[travel-pin] skipped ${msg.fileName}: ${msg.message}`)
-          continue
-        }
-
-        // A HEIC we failed to convert would be stored unrenderable, which looks
-        // exactly like the import silently doing nothing. Better to skip it.
-        if (looksHeic(file) && !display.converted) continue
-
-        const p = msg.photo
-        const regionId = p.regionId ?? fallback?.regionId ?? null
-        const regionName = p.regionName ?? fallback?.regionName ?? null
-        const countryId = p.countryId ?? fallback?.countryId ?? null
-
-        await db.photos.add({
-          id: newId(),
-          cityId: await cityForPhoto({ regionId, lat: p.lat, lon: p.lon }),
-          blob: p.blob,
-          thumbBlob: p.thumbBlob,
-          fileName: p.fileName,
-          takenAt: p.takenAt,
-          lat: p.lat,
-          lon: p.lon,
-          regionId,
-          regionName,
-          countryId,
-          placedBy: p.placedBy ?? (fallback ? 'manual' : null),
-          caption: '',
-          createdAt: Date.now(),
-        })
-
-        if (regionId && countryId) {
-          await markVisited(regionId, countryId, p.takenAt)
-        } else {
-          unplaced++
-          setImportState({ unplaced })
-        }
+      const fail = (fileName: string, err: unknown) => {
+        failed++
+        if (isQuotaError(err)) quotaHit = true
+        const message = err instanceof Error ? err.message : String(err)
+        firstError ??= `${fileName}: ${message}`
+        console.warn(`[travel-pin] skipped ${fileName}: ${message}`)
       }
 
-      setImportState({ active: false, done: files.length, fileName: '' })
-      worker.terminate()
-      workerRef.current = null
+      try {
+        // One file at a time, so a large import never holds every converted
+        // JPEG in memory at once.
+        for (let i = 0; i < files.length; i++) {
+          if (cancelled.current) break
+          const file = files[i]
+          setImportState({ done: i, total: files.length, fileName: file.name })
+
+          // Every file is isolated: one unreadable photo, or one write that
+          // blows the storage quota, must not abandon the whole import and
+          // leave the progress bar stuck at whatever it had reached.
+          try {
+            // HEIC has to be converted here on the main thread - see the worker.
+            const display = await toDisplayBlob(file)
+            if (display.error) {
+              fail(file.name, new Error(`could not convert HEIC (${display.error})`))
+              continue
+            }
+
+            const msg = await runInWorker({ file, displayBlob: display.blob })
+            if (msg.type === 'error') {
+              fail(msg.fileName, new Error(msg.message))
+              continue
+            }
+
+            // A HEIC we failed to convert would be stored unrenderable, which
+            // looks exactly like the import silently doing nothing.
+            if (looksHeic(file) && !display.converted) {
+              fail(file.name, new Error('HEIC could not be converted'))
+              continue
+            }
+
+            const p = msg.photo
+            const regionId = p.regionId ?? fallback?.regionId ?? null
+            const regionName = p.regionName ?? fallback?.regionName ?? null
+            const countryId = p.countryId ?? fallback?.countryId ?? null
+
+            await db.photos.add({
+              id: newId(),
+              cityId: await cityForPhoto({ regionId, lat: p.lat, lon: p.lon }),
+              blob: p.blob,
+              thumbBlob: p.thumbBlob,
+              fileName: p.fileName,
+              takenAt: p.takenAt,
+              lat: p.lat,
+              lon: p.lon,
+              regionId,
+              regionName,
+              countryId,
+              placedBy: p.placedBy ?? (fallback ? 'manual' : null),
+              caption: '',
+              createdAt: Date.now(),
+            })
+            added++
+
+            if (regionId && countryId) {
+              await markVisited(regionId, countryId, p.takenAt)
+            } else {
+              unplaced++
+              setImportState({ unplaced })
+            }
+          } catch (err) {
+            fail(file.name, err)
+            // No point grinding through hundreds more files once storage is full.
+            if (isQuotaError(err)) break
+          }
+        }
+      } finally {
+        // Always runs, so the progress bar can never be left spinning.
+        setImportState({ active: false, done: files.length, fileName: '' })
+        setSummary({ added, unplaced, failed, quotaHit, firstError })
+        worker.terminate()
+        workerRef.current = null
+      }
     },
-    [setImportState],
+    [setImportState, setSummary],
   )
 
   return { importFiles }

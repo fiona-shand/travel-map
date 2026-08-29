@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Sidebar } from './components/Sidebar'
 import { DropOverlay } from './components/ImportDropzone'
+import { ImportSummary } from './components/ImportSummary'
 import { RegionPage } from './components/RegionPage'
 import { AtlasView } from './views/AtlasView'
 import { MemoriesView } from './views/MemoriesView'
@@ -45,6 +46,8 @@ export function App() {
             </>
           )}
         </header>
+
+        <ImportSummary />
 
         {atlasError && (
           <p className="border-b border-border bg-yellow-bg px-4 py-2 text-[13px] text-text">
