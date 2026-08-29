@@ -1,0 +1,89 @@
+@import 'tailwindcss';
+
+@theme {
+  /* --- Notion palette -----------------------------------------------
+     Mirrored for <canvas> in src/lib/palette.ts - keep the two in step. */
+  --color-bg: #ffffff;
+  --color-bg-sidebar: #fbfbfa;
+  --color-bg-subtle: #f7f7f5;
+  --color-bg-hover: #efefee;
+  --color-bg-active: #e8e8e6;
+
+  --color-border: #e9e9e7;
+  --color-border-strong: #dfdedb;
+
+  --color-text: #37352f;
+  --color-text-2: #787774;
+  --color-text-3: #9b9a97;
+
+  --color-accent: #2383e2;
+  --color-accent-hover: #0b6e99;
+  --color-accent-bg: #e7f3f8;
+
+  --color-yellow: #dfab01;
+  --color-yellow-bg: #fbf3db;
+  --color-red: #e03e3e;
+
+  /* globe */
+  --color-ocean: #f7f7f5;
+  --color-land: #e3e2e0;
+
+  --font-sans:
+    ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica,
+    'Apple Color Emoji', Arial, sans-serif, 'Segoe UI Emoji';
+
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+
+  --shadow-card: 0 0 0 1px rgba(15, 15, 15, 0.05), 0 2px 4px rgba(15, 15, 15, 0.06);
+  --shadow-pop:
+    0 0 0 1px rgba(15, 15, 15, 0.05), 0 3px 6px rgba(15, 15, 15, 0.1),
+    0 9px 24px rgba(15, 15, 15, 0.2);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    overscroll-behavior: none;
+  }
+
+  ::selection {
+    background: #cce0f5;
+  }
+}
+
+@layer utilities {
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  .shadow-pop {
+    box-shadow: var(--shadow-pop);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  /* Notion's thin, only-on-hover scrollbar */
+  .thin-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .thin-scroll::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 4px;
+  }
+  .thin-scroll:hover::-webkit-scrollbar-thumb {
+    background: #d3d1cb;
+  }
+}
