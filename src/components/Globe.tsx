@@ -80,10 +80,9 @@ export function Globe({ atlas, places, photoCounts, selected, onSelect, mode }: 
     const { w, h } = size.current
     if (!w || !h) return
 
-    // Render at 1x while the globe is in motion and at full pixel density once
-    // it settles. At 2x DPR the canvas is ~3M pixels, and fill cost scales with
-    // that - dropping to 1x during a drag quarters the pixel work.
-    const dpr = moving.current ? 1 : Math.min(devicePixelRatio, 2)
+    // Always full pixel density. Dropping to 1x while dragging saved very
+    // little and made the hairline borders shimmer.
+    const dpr = Math.min(devicePixelRatio, 2)
     const targetW = Math.round(w * dpr)
     const targetH = Math.round(h * dpr)
     if (canvas.width !== targetW || canvas.height !== targetH) {
@@ -109,18 +108,15 @@ export function Globe({ atlas, places, photoCounts, selected, onSelect, mode }: 
     ctx.fillStyle = PALETTE.ocean
     ctx.fill()
 
-    // The graticule is pure decoration - drop it while moving.
-    if (!moving.current) {
-      ctx.beginPath()
-      path(geoGraticule10())
-      ctx.strokeStyle = PALETTE.graticule
-      ctx.lineWidth = 0.6
-      ctx.stroke()
-    }
+    ctx.beginPath()
+    path(geoGraticule10())
+    ctx.strokeStyle = PALETTE.graticule
+    ctx.lineWidth = 0.6
+    ctx.stroke()
 
-    // One geometry pass per fill group. Stroking every border is the single
-    // most expensive step, so borders are dropped while the globe is moving
-    // and drawn again the moment it settles.
+    // One geometry pass per fill group, filling and stroking the same path.
+    // Borders are drawn on every frame, including mid-drag: hiding them while
+    // moving was cheaper but made the globe fall apart in the hand.
     ctx.lineWidth = 0.5
     ctx.strokeStyle = PALETTE.border
     for (const [fill, regions] of batches) {
@@ -128,10 +124,10 @@ export function Globe({ atlas, places, photoCounts, selected, onSelect, mode }: 
       for (const region of regions) path(region.feature)
       ctx.fillStyle = fill
       ctx.fill()
-      if (!moving.current) ctx.stroke()
+      ctx.stroke()
     }
 
-    if (wishlistRegions.length && !moving.current) {
+    if (wishlistRegions.length) {
       ctx.beginPath()
       for (const region of wishlistRegions) path(region.feature)
       ctx.strokeStyle = PALETTE.yellow

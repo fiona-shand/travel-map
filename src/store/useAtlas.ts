@@ -16,13 +16,18 @@ type AtlasStore = {
   atlas: WorldAtlas | null
   atlasError: string | null
   view: ViewMode
+  /** Highlighted on the globe. Selecting never navigates on its own. */
   selectedRegion: string | null
-  /** When set, the next globe click places this photo instead of opening a page. */
+  /** The region page currently open, opened from the sidebar. */
+  openRegionId: string | null
+  /** When set, the next globe click places this photo instead of selecting. */
   assigningPhotoId: string | null
   importState: ImportState
   init: () => Promise<void>
   setView: (view: ViewMode) => void
   selectRegion: (regionId: string | null) => void
+  openRegion: (regionId: string) => void
+  closeRegion: () => void
   setAssigning: (photoId: string | null) => void
   setImportState: (patch: Partial<ImportState>) => void
 }
@@ -34,6 +39,7 @@ export const useAtlasStore = create<AtlasStore>((set, get) => ({
   atlasError: null,
   view: 'atlas',
   selectedRegion: null,
+  openRegionId: null,
   assigningPhotoId: null,
   importState: idleImport,
 
@@ -46,8 +52,11 @@ export const useAtlasStore = create<AtlasStore>((set, get) => ({
     }
   },
 
-  setView: (view) => set({ view, selectedRegion: null, assigningPhotoId: null }),
+  setView: (view) =>
+    set({ view, selectedRegion: null, openRegionId: null, assigningPhotoId: null }),
   selectRegion: (selectedRegion) => set({ selectedRegion }),
-  setAssigning: (assigningPhotoId) => set({ assigningPhotoId, selectedRegion: null }),
+  openRegion: (regionId) => set({ openRegionId: regionId, selectedRegion: regionId }),
+  closeRegion: () => set({ openRegionId: null }),
+  setAssigning: (assigningPhotoId) => set({ assigningPhotoId, openRegionId: null }),
   setImportState: (patch) => set((s) => ({ importState: { ...s.importState, ...patch } })),
 }))

@@ -45,7 +45,7 @@ function Row({
 }
 
 export function Sidebar({ data }: { data: TravelData }) {
-  const { view, setView, selectedRegion, selectRegion, atlas } = useAtlasStore()
+  const { view, setView, selectedRegion, openRegionId, openRegion, atlas } = useAtlasStore()
 
   const entries = [...data.places.entries()].map(([regionId, place]) => ({
     regionId,
@@ -68,9 +68,11 @@ export function Sidebar({ data }: { data: TravelData }) {
     .filter((e) => !e.isState)
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
 
+  // The sidebar is how you get into a place's page; clicking the globe only
+  // highlights it.
   const open = (regionId: string) => {
     setView('atlas')
-    selectRegion(regionId)
+    openRegion(regionId)
   }
 
   return (
@@ -86,7 +88,7 @@ export function Sidebar({ data }: { data: TravelData }) {
             key={item.id}
             icon={item.icon}
             label={item.label}
-            active={view === item.id && !selectedRegion}
+            active={view === item.id && !openRegionId}
             onClick={() => setView(item.id)}
           />
         ))}
@@ -102,7 +104,7 @@ export function Sidebar({ data }: { data: TravelData }) {
                 icon={entry.flag}
                 label={entry.name}
                 trailing={entry.count || ''}
-                active={selectedRegion === entry.regionId}
+                active={openRegionId === entry.regionId || selectedRegion === entry.regionId}
                 onClick={() => open(entry.regionId)}
               />
             ))}
@@ -121,7 +123,7 @@ export function Sidebar({ data }: { data: TravelData }) {
                     label={entry.name}
                     trailing={entry.count || ''}
                     indent
-                    active={selectedRegion === entry.regionId}
+                    active={openRegionId === entry.regionId || selectedRegion === entry.regionId}
                     onClick={() => open(entry.regionId)}
                   />
                 ))}
@@ -138,7 +140,7 @@ export function Sidebar({ data }: { data: TravelData }) {
                 key={entry.regionId}
                 icon={entry.flag}
                 label={entry.name}
-                active={selectedRegion === entry.regionId}
+                active={openRegionId === entry.regionId || selectedRegion === entry.regionId}
                 onClick={() => open(entry.regionId)}
               />
             ))}

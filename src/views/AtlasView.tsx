@@ -6,7 +6,6 @@ import { Button } from '../components/ui/primitives'
 import { WORLD_COUNTRY_COUNT } from '../lib/countryMeta'
 import { RAMP_THRESHOLDS, VISIT_RAMP } from '../lib/fillScale'
 import { assignPhotoToRegion } from '../lib/placePhoto'
-import { seedDemoData } from '../lib/seed'
 import type { TravelData } from '../lib/useTravelData'
 import { useAtlasStore } from '../store/useAtlas'
 
@@ -20,7 +19,8 @@ function Stat({ value, label }: { value: string | number; label: string }) {
 }
 
 export function AtlasView({ data }: { data: TravelData }) {
-  const { atlas, selectedRegion, selectRegion, assigningPhotoId, setAssigning } = useAtlasStore()
+  const { atlas, selectedRegion, selectRegion, openRegion, assigningPhotoId, setAssigning } =
+    useAtlasStore()
   const [pending, setPending] = useState<string | null>(null)
 
   const handleSelect = async (regionId: string | null) => {
@@ -37,7 +37,8 @@ export function AtlasView({ data }: { data: TravelData }) {
       return
     }
 
-    // Somewhere you've already been opens straight up; somewhere new asks first.
+    // Somewhere you've already been just highlights on the globe - opening its
+    // page is done from the sidebar. Somewhere new asks first.
     if (data.places.get(regionId)?.status === 'visited') {
       selectRegion(regionId)
       return
@@ -46,6 +47,17 @@ export function AtlasView({ data }: { data: TravelData }) {
   }
 
   const pendingRegion = pending && atlas ? atlas.byId(pending) : null
+
+  // A selected place gets a small card with a way into its page, since
+  // clicking the globe deliberately doesn't navigate.
+  const selectedPlace =
+    selectedRegion && atlas && data.places.get(selectedRegion)
+      ? {
+          id: selectedRegion,
+          name: atlas.nameOf(selectedRegion),
+          count: data.photoCounts.get(selectedRegion) ?? 0,
+        }
+      : null
   const pct = ((data.visitedCount / WORLD_COUNTRY_COUNT) * 100).toFixed(0)
   const isEmpty = !data.loading && data.visitedCount === 0 && data.photoCount === 0
 
@@ -57,19 +69,23 @@ export function AtlasView({ data }: { data: TravelData }) {
         <Stat value={data.visitedRegionCount} label="Places" />
         <Stat value={data.photoCount} label="Memories" />
 
+        {/* The ramp needs to say what it counts - "fewer/more" of what, on its
+            own, means nothing. */}
         <div className="ml-auto flex items-center gap-2 text-[12px] text-text-3">
-          <span>Fewer</span>
-          <div className="flex overflow-hidden rounded-xs">
+          <span>Photos per place</span>
+          <div className="flex overflow-hidden rounded-xs border border-border">
             {VISIT_RAMP.map((color, i) => (
               <span
                 key={color}
                 className="h-3 w-5"
                 style={{ background: color }}
-                title={`${RAMP_THRESHOLDS[i]}+ photos`}
+                title={`${RAMP_THRESHOLDS[i]}${i === VISIT_RAMP.length - 1 ? '+' : `–${RAMP_THRESHOLDS[i + 1] - 1}`} photos`}
               />
             ))}
           </div>
-          <span>More</span>
+          <span className="tabular-nums">
+            0 → {RAMP_THRESHOLDS[RAMP_THRESHOLDS.length - 1]}+
+          </span>
         </div>
       </div>
 
@@ -97,18 +113,30 @@ export function AtlasView({ data }: { data: TravelData }) {
           </div>
         )}
 
+        {selectedPlace && (
+          <div className="absolute bottom-3 left-3 flex items-center gap-3 rounded-md border border-border bg-white py-2 pr-2 pl-3 shadow-pop">
+            <div>
+              <div className="text-[13px] font-medium text-text">{selectedPlace.name}</div>
+              <div className="text-[12px] text-text-2">
+                {selectedPlace.count === 0
+                  ? 'No photos yet'
+                  : `${selectedPlace.count} ${selectedPlace.count === 1 ? 'memory' : 'memories'}`}
+              </div>
+            </div>
+            <Button size="sm" onClick={() => openRegion(selectedPlace.id)}>
+              Open page
+            </Button>
+          </div>
+        )}
+
         {isEmpty && (
           <div className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center">
-            <div className="pointer-events-auto flex items-center gap-3 rounded-md border border-border bg-white px-4 py-3 shadow-pop">
-              <div>
-                <div className="text-[13px] font-medium text-text">Your globe is empty</div>
-                <div className="text-[12px] text-text-2">
-                  Click anywhere you&rsquo;ve been, or load some sample trips.
-                </div>
+            <div className="rounded-md border border-border bg-white px-4 py-3 text-center shadow-pop">
+              <div className="text-[13px] font-medium text-text">Your globe is empty</div>
+              <div className="text-[12px] text-text-2">
+                Click anywhere you&rsquo;ve been to shade it in, or add photos to fill it
+                in automatically.
               </div>
-              <Button size="sm" onClick={() => seedDemoData()}>
-                Load sample data
-              </Button>
             </div>
           </div>
         )}
@@ -122,7 +150,7 @@ export function AtlasView({ data }: { data: TravelData }) {
           place={data.places.get(pendingRegion.id)}
           onConfirmed={(regionId) => {
             setPending(null)
-            selectRegion(regionId)
+            openRegion(regionId)
           }}
           onClose={() => setPending(null)}
         />

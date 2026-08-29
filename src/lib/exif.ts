@@ -36,18 +36,27 @@ export async function readPhotoMeta(file: File): Promise<PhotoMeta> {
   }
 }
 
+export type ConversionResult = { blob: Blob; converted: boolean; error?: string }
+
 /**
  * Browsers cannot render HEIC, so convert it before we ever put it in an <img>.
  * The libheif wasm is dynamically imported so JPEG-only imports never pay for it.
+ *
+ * A failure here must never be swallowed: keeping the original HEIC produces a
+ * photo that saves correctly but is invisible everywhere in the UI, which looks
+ * exactly like the import having done nothing.
  */
-export async function toDisplayBlob(file: File): Promise<Blob> {
-  if (!looksHeic(file)) return file
+export async function toDisplayBlob(file: File): Promise<ConversionResult> {
+  if (!looksHeic(file)) return { blob: file, converted: false }
   try {
     const { heicTo } = await import('heic-to')
-    return await heicTo({ blob: file, type: 'image/jpeg', quality: 0.92 })
-  } catch {
-    // Conversion failed - keep the original so the photo is still placed on the
-    // map and stored, even though its preview may not render.
-    return file
+    const blob = await heicTo({ blob: file, type: 'image/jpeg', quality: 0.92 })
+    return { blob, converted: true }
+  } catch (err) {
+    return {
+      blob: file,
+      converted: false,
+      error: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+    }
   }
 }

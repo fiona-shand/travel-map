@@ -39,9 +39,18 @@ the one place a silent regression would quietly lose photos.
 downloads routinely have GPS stripped, so those land in an unplaced tray where you
 assign them by clicking the globe.
 
-**HEIC needs splitting in two.** `exifr` reads GPS straight out of an iPhone HEIC,
-but browsers can't render one, so display goes through a lazily-imported
-libheif-wasm converter that JPEG-only imports never pay for.
+**HEIC needs splitting in two, across two threads.** `exifr` reads GPS straight
+out of an iPhone HEIC, but browsers can't render one, so display goes through a
+lazily-imported libheif-wasm converter that JPEG-only imports never pay for.
+That conversion **cannot run in a worker**: `heic-to` encodes via
+`document.createElement('canvas')`, so it throws `ReferenceError: document is
+not defined` there. So the main thread converts, and the worker does EXIF,
+thumbnailing and the geo lookup — reading EXIF from the *original* file, since
+GPS doesn't survive the conversion.
+
+A HEIC that fails to convert is skipped rather than stored, because keeping the
+original produces a photo that saves perfectly but is invisible everywhere in
+the UI — indistinguishable from the import having done nothing.
 
 ## Data
 

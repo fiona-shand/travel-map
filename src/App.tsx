@@ -13,14 +13,14 @@ const TITLES = { atlas: 'Atlas', plan: 'Plan trips', memories: 'Memories' } as c
 const ICONS = { atlas: '🌍', plan: '✈️', memories: '🖼️' } as const
 
 export function App() {
-  const { view, init, atlasError, atlas, selectedRegion, selectRegion } = useAtlasStore()
+  const { view, init, atlasError, atlas, openRegionId, closeRegion } = useAtlasStore()
   const data = useTravelData()
 
   useEffect(() => {
     void init()
   }, [init])
 
-  const region = selectedRegion && atlas ? atlas.byId(selectedRegion) : null
+  const region = openRegionId && atlas ? atlas.byId(openRegionId) : null
 
   return (
     <div className="flex h-dvh overflow-hidden">
@@ -29,7 +29,7 @@ export function App() {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-11 shrink-0 items-center gap-1.5 border-b border-border px-4 text-[13px]">
           <button
-            onClick={() => selectRegion(null)}
+            onClick={closeRegion}
             className="flex items-center gap-1.5 rounded-sm px-1.5 py-0.5 text-text-2 transition-colors hover:bg-bg-hover hover:text-text"
           >
             <span>{ICONS[view]}</span>
