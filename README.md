@@ -7,6 +7,9 @@ it was taken in, and gathering itself into that place's page of memories.
 Everything stays on your machine. Photos are held in IndexedDB and never uploaded;
 there is no backend, no account, and no API key.
 
+**Live:** https://travel-map-five-smoky.vercel.app — your photos stay in your own
+browser, so the deployed app starts empty for whoever opens it.
+
 ## Running it
 
 ```bash
@@ -19,6 +22,15 @@ npm run dev
 | `npm run dev` | Dev server on http://localhost:5173 |
 | `npm run build` | Typecheck and production build |
 | `npx vitest run` | Geo resolver tests |
+| `npm run cities` | Regenerate `public/cities/` (also run by `dev` and `build`) |
+
+## Deploying
+
+Deployed on Vercel, linked to this repo, so pushes to `main` ship automatically.
+
+`vercel.json` pins the build command to `npm run build` rather than letting the
+Vite preset run `vite build` directly — the latter would skip city generation and
+ship an app whose "Add city" search silently returns nothing.
 
 ## How it works
 

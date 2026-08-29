@@ -5,12 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "node scripts/build-cities.mjs && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
     "cities": "node scripts/build-cities.mjs",
-    "predev": "node scripts/build-cities.mjs",
-    "prebuild": "node scripts/build-cities.mjs"
+    "predev": "node scripts/build-cities.mjs"
   },
   "dependencies": {
     "countries-list": "^3.4.1",

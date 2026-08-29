@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "headers": [
+    {
+      "source": "/cities/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, s-maxage=604800" }]
+    },
+    {
+      "source": "/(countries-50m|states-10m).json",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, s-maxage=604800" }]
+    }
+  ]
+}
